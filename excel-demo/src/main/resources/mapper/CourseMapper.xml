@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.exceldemo.dao.CourseMapper">
+
+    <resultMap id="BaseResultMap_1" type="com.example.exceldemo.dto.CourseVo">
+        <id property="id" column="id"></id>
+        <result property="name" column="name"></result>
+
+        <!--association（1对1） 这个标签对应BaseResultMap_1中的teacherExcel成员变量的属性-->
+        <association property="teacherExcel" javaType="com.example.exceldemo.excel.TeacherExcel">
+            <result property="name" column="teacher_name"></result>
+        </association>
+
+        <!--collection（1对多） 代表集合-->
+        <collection property="studentExcelList" column="id" ofType="com.example.exceldemo.excel.StudentExcel" select="com.example.exceldemo.dao.CourseMapper.getStudentListById" >
+        </collection>
+    </resultMap>
+    <!--获取课程导出列表-->
+    <select id="getCourseExportList" resultMap="BaseResultMap_1">
+        select c.id,
+               c.`name`,
+               t.`name` as teacher_name
+        from t_course c
+        LEFT JOIN t_teacher t on t.id = c.teacher_id
+        where 1=1
+        <if test="name!=null and ''!=name">
+            and c.`name` like concat('%',#{name},'%')
+        </if>
+    </select>
+
+    <!--获取课程导出列表-->
+    <select id="getStudentListById" resultType="com.example.exceldemo.excel.StudentExcel">
+        select s1.id,s1.name,s1.sex,s1.birthday,s1.registration_date as registrationDate
+        from t_course_student c1
+        INNER JOIN t_student s1 on s1.id = c1.student_id
+        where course_id=#{id}
+    </select>
+</mapper>
