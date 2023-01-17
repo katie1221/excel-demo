@@ -5,8 +5,16 @@ import cn.afterturn.easypoi.excel.ExcelImportUtil;
 import cn.afterturn.easypoi.excel.entity.ExportParams;
 import cn.afterturn.easypoi.excel.entity.ImportParams;
 import cn.afterturn.easypoi.excel.entity.enmus.ExcelType;
+import cn.afterturn.easypoi.excel.entity.result.ExcelImportResult;
+import com.alibaba.fastjson.JSONObject;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
@@ -22,6 +30,7 @@ import java.util.NoSuchElementException;
  * Excel 导入导出工具类
  * @author qzz
  */
+@Slf4j
 public class ExcelUtils {
 
     /**
@@ -219,6 +228,56 @@ public class ExcelUtils {
         } catch (Exception e) {
             throw new IOException(e.getMessage());
         }
+    }
+
+    /**
+     * 得到Workbook对象
+     *
+     * @param file 解析的文件对象
+     */
+    public static Workbook getWorkBook(File file) {
+        Workbook hssfWorkbook;
+        try (InputStream is = FileUtils.openInputStream(file)) {
+            hssfWorkbook = new HSSFWorkbook(is);
+        } catch (Exception ex) {
+            /***
+             * excel 兼容03和07
+             */
+            try (InputStream is = FileUtils.openInputStream(file)) {
+                hssfWorkbook = new XSSFWorkbook(is);
+            } catch (Exception e) {
+                throw new RuntimeException(e.getMessage());
+            }
+        }
+        return hssfWorkbook;
+    }
+
+    /**
+     * 导入表格(多sheet)
+     *
+     * @param file            上传的文件
+     * @param claxx           转换的对象
+     * @param headerRows      excel头占几行
+     * @param startSheetIndex 第几个sheet
+     * @param titleRows       标题占几行
+     */
+    @SneakyThrows(Exception.class)
+    public static < T > List< T > importExcelMore(File file, Integer titleRows, Integer headerRows, Integer startSheetIndex, Class< T > claxx) {
+        if (ObjectUtils.isEmpty(file)){
+            return null;
+        }
+        ImportParams params = new ImportParams();
+        params.setTitleRows(titleRows);
+        params.setHeadRows(headerRows);
+        params.setStartSheetIndex(startSheetIndex);
+        ExcelImportResult< Object > excelImportResult = ExcelImportUtil.importExcelMore(FileUtils.openInputStream(file), claxx, params);
+        if (!excelImportResult.isVerifyFail()) {
+            return (List< T >) excelImportResult.getList();
+        }
+        else {
+            log.debug("解析失败的列:{}", JSONObject.toJSONString(excelImportResult.getFailList()));
+        }
+        return null;
     }
 }
 

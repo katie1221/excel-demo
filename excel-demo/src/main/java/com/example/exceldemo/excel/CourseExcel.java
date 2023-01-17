@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
+ * numFormat 数字格式化,参数是Pattern,使用的对象是DecimalFormat
  * 课程
  * @author qzz
  */
